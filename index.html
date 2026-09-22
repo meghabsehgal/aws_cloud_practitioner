@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS CLF-C02 Interactive Chart Builder & Study Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Interactive Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        aws: {
+                            orange: '#FF9900',
+                            dark: '#232F3E',
+                            darker: '#131A22',
+                            blue: '#0073BB',
+                            light: '#F2F3F3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .dark .glass-card {
+            background: rgba(35, 47, 62, 0.95);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+
+    <div class="min-h-full flex flex-col">
+        <!-- Top Navigation Bar -->
+        <header class="bg-aws-dark dark:bg-aws-darker text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-aws-orange p-2 rounded-lg text-aws-darker font-bold flex items-center justify-center shadow">
+                        <i data-lucide="cloud" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+                            AWS CLF-C02 
+                            <span class="text-xs bg-aws-orange/20 text-aws-orange px-2 py-0.5 rounded-full border border-aws-orange/30">Interactive Dashboard</span>
+                        </h1>
+                        <p class="text-xs text-slate-400">Exam Domain Analyzer & Chart Builder</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition" title="Toggle Theme">
+                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                    </button>
+                    <button onclick="app.exportData()" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-aws-orange text-aws-darker font-semibold text-sm hover:bg-amber-400 transition shadow">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Export CSV</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Container -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            
+            <!-- Quick Stats Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 rounded-lg bg-blue-500/10 text-aws-blue">
+                        <i data-lucide="layers" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Exam Domains</p>
+                        <h3 class="text-2xl font-bold">4 Domains</h3>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">100% CLF-C02 Covered</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 rounded-lg bg-amber-500/10 text-aws-orange">
+                        <i data-lucide="key" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Total Keywords</p>
+                        <h3 id="stat-total-keywords" class="text-2xl font-bold">0</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Searchable & Filterable</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 rounded-lg bg-emerald-500/10 text-emerald-600">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Mastery Tracked</p>
+                        <h3 id="stat-mastered" class="text-2xl font-bold">0 / 0</h3>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium" id="stat-mastery-pct">0% Mastered</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 rounded-lg bg-purple-500/10 text-purple-600">
+                        <i data-lucide="book-open" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Study Mode</p>
+                        <button onclick="app.openFlashcards()" class="mt-1 text-xs font-bold text-aws-blue dark:text-aws-orange hover:underline flex items-center gap-1">
+                            <span>Launch Flashcards</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation Bar -->
+            <div class="flex border-b border-slate-200 dark:border-slate-800 space-x-6">
+                <button onclick="app.switchTab('explorer')" id="tab-btn-explorer" class="pb-3 border-b-2 font-semibold text-sm flex items-center space-x-2 border-aws-orange text-aws-orange transition">
+                    <i data-lucide="grid" class="w-4 h-4"></i>
+                    <span>Domain Explorer & Tree</span>
+                </button>
+                <button onclick="app.switchTab('builder')" id="tab-btn-builder" class="pb-3 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-2 transition">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span>Interactive Chart Builder</span>
+                </button>
+                <button onclick="app.switchTab('keywords')" id="tab-btn-keywords" class="pb-3 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-2 transition">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    <span>Keyword Matrix & Glossary</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: Domain Explorer & Tree -->
+            <div id="tab-content-explorer" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Domain Selection Sidebar -->
+                    <div class="lg:col-span-1 space-y-3">
+                        <h2 class="text-lg font-bold flex items-center gap-2">
+                            <i data-lucide="compass" class="w-5 h-5 text-aws-blue"></i>
+                            <span>Exam Domains (CLF-C02)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Select an exam domain to inspect its weight, core topics, and associated keywords.</p>
+                        
+                        <div id="domain-list" class="space-y-2 mt-4">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Domain Detail View -->
+                    <div class="lg:col-span-2 glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div id="domain-detail-header" class="border-b border-slate-200 dark:border-slate-800 pb-4 flex items-start justify-between">
+                            <div>
+                                <span id="detail-domain-badge" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Domain 1</span>
+                                <h3 id="detail-domain-title" class="text-xl font-bold mt-1">Select a domain</h3>
+                                <p id="detail-domain-desc" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Click a domain card on the left to explore its breakdown.</p>
+                            </div>
+                            <div class="text-right">
+                                <span id="detail-domain-weight" class="text-2xl font-extrabold text-aws-orange">--%</span>
+                                <p class="text-xs text-slate-400">Exam Weight</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-semibold text-sm uppercase tracking-wider text-slate-400 mb-3">Core Topics & Sub-categories</h4>
+                            <div id="detail-topics-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Topics populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-semibold text-sm uppercase tracking-wider text-slate-400 mb-3">Associated Keywords & Services</h4>
+                            <div id="detail-keywords-grid" class="flex flex-wrap gap-2">
+                                <!-- Keywords populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Interactive Chart Builder -->
+            <div id="tab-content-builder" class="hidden space-y-6">
+                <div class="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+                        <div>
+                            <h2 class="text-xl font-bold flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-5 h-5 text-aws-orange"></i>
+                                <span>Interactive Chart & Graph Visualizer</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Customize chart type, metrics, and filter data dynamically.</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Chart Type</label>
+                                <select id="chart-type-select" onchange="app.updateChartConfig()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-aws-orange">
+                                    <option value="doughnut">Doughnut (Domain Weight)</option>
+                                    <option value="bar">Bar (Keyword Count per Domain)</option>
+                                    <option value="pie">Pie Chart</option>
+                                    <option value="polarArea">Polar Area</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Metric View</label>
+                                <select id="chart-metric-select" onchange="app.updateChartConfig()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-aws-orange">
+                                    <option value="weight">Official Exam Weight (%)</option>
+                                    <option value="keywords">Keyword Volume</option>
+                                    <option value="mastery">Mastery Progress (%)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Container -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                        <div class="lg:col-span-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center relative min-h-[350px]">
+                            <canvas id="examChart" class="max-h-[350px] w-full"></canvas>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">Chart Insights & Controls</h3>
+                            <div class="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl space-y-2 text-sm text-blue-900 dark:text-blue-200">
+                                <div class="flex items-center gap-2 font-semibold">
+                                    <i data-lucide="info" class="w-4 h-4 text-aws-blue"></i>
+                                    <span>CLF-C02 Blueprint</span>
+                                </div>
+                                <p class="text-xs leading-relaxed">Domain 3 (Technology & Core Services) and Domain 2 (Security & Compliance) account for over 64% of the actual exam questions. Prioritize these in your study plan.</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <button onclick="app.randomizeChartAnimation()" class="w-full py-2 px-4 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    <span>Animate & Refresh Chart</span>
+                                </button>
+                                <button onclick="app.switchTab('keywords')" class="w-full py-2 px-4 rounded-lg bg-aws-blue text-white font-semibold text-sm hover:bg-blue-600 transition flex items-center justify-center gap-2">
+                                    <i data-lucide="search" class="w-4 h-4"></i>
+                                    <span>Browse Filterable Keywords</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Keyword Matrix & Glossary -->
+            <div id="tab-content-keywords" class="hidden space-y-6">
+                <div class="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="absolute left-3.5 top-3 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="keyword-search-input" oninput="app.filterKeywords()" placeholder="Search keywords, services, definitions..." class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-aws-orange">
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <select id="domain-filter-select" onchange="app.filterKeywords()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-aws-orange">
+                                <option value="all">All Domains (1-4)</option>
+                                <option value="1">Domain 1: Cloud Concepts</option>
+                                <option value="2">Domain 2: Security & Compliance</option>
+                                <option value="3">Domain 3: Technology & Services</option>
+                                <option value="4">Domain 4: Billing & Pricing</option>
+                            </select>
+
+                            <select id="mastery-filter-select" onchange="app.filterKeywords()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-aws-orange">
+                                <option value="all">All Status</option>
+                                <option value="mastered">Mastered Only</option>
+                                <option value="unmastered">Needs Review</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Keywords Table / Grid -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-900 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                                    <th class="p-4 font-semibold">Keyword / Service</th>
+                                    <th class="p-4 font-semibold">Exam Domain</th>
+                                    <th class="p-4 font-semibold">Definition & Context</th>
+                                    <th class="p-4 font-semibold text-center">Status</th>
+                                    <th class="p-4 font-semibold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keywords-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Flashcard Modal -->
+    <div id="flashcard-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="glass-card max-w-lg w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6 relative">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-5 h-5 text-aws-orange"></i>
+                    <h3 class="font-bold text-lg">CLF-C02 Flashcard Study Mode</h3>
+                </div>
+                <button onclick="app.closeFlashcards()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-900">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Flashcard Box -->
+            <div onclick="app.flipFlashcard()" id="flashcard-card" class="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 p-8 rounded-2xl border border-slate-300 dark:border-slate-700 min-h-[220px] flex flex-col items-center justify-center text-center cursor-pointer shadow-inner relative transition-transform duration-300">
+                <span id="flashcard-domain-badge" class="absolute top-4 left-4 text-xs font-semibold px-2.5 py-1 rounded-md bg-aws-orange/20 text-aws-orange">Domain 1</span>
+                <span class="absolute top-4 right-4 text-xs text-slate-400 font-medium">Click to flip</span>
+                
+                <div id="flashcard-content" class="space-y-3 mt-4">
+                    <h4 id="flashcard-title" class="text-2xl font-extrabold text-slate-900 dark:text-white">Loading...</h4>
+                    <p id="flashcard-desc" class="text-sm text-slate-600 dark:text-slate-300 hidden">Definition goes here</p>
+                </div>
+            </div>
+
+            <!-- Flashcard Controls -->
+            <div class="flex items-center justify-between pt-2">
+                <button onclick="app.prevFlashcard()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm font-semibold flex items-center gap-2 transition">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    <span>Previous</span>
+                </button>
+
+                <span id="flashcard-counter" class="text-xs font-medium text-slate-500 dark:text-slate-400">Card 1 of 10</span>
+
+                <button onclick="app.nextFlashcard()" class="px-4 py-2 rounded-xl bg-aws-orange text-aws-darker hover:bg-amber-400 text-sm font-bold flex items-center gap-2 transition">
+                    <span>Next</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive dataset covering the official AWS Certified Cloud Practitioner (CLF-C02) exam
+        const awsExamData = {
+            domains: [
+                {
+                    id: 1,
+                    title: "Domain 1: Cloud Concepts",
+                    weight: "24%",
+                    badgeBg: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+                    description: "Understand the basic cloud concepts, AWS global infrastructure, economics, and cloud deployment models.",
+                    topics: [
+                        "Value Proposition of the Cloud",
+                        "Economics of Cloud (CAPEX vs OPEX)",
+                        "Global Infrastructure (Regions, AZs, Edge Locations)",
+                        "Cloud Deployment Models (Public, Private, Hybrid)"
+                    ],
+                    keywords: [
+                        { name: "CAPEX", def: "Capital Expenditure - upfront, fixed cost of buying physical hardware.", mastered: true },
+                        { name: "OPEX", def: "Operational Expenditure - pay-as-you-go, variable cost model.", mastered: true },
+                        { name: "Economies of Scale", def: "Lower variable costs as AWS achieves massive bulk scale.", mastered: false },
+                        { name: "High Availability", def: "Systems are continuously operational with minimal downtime.", mastered: true },
+                        { name: "Fault Tolerance", def: "Zero downtime even if a component or server fails.", mastered: false },
+                        { name: "Elasticity", def: "Ability to scale resources out and in automatically based on load.", mastered: true },
+                        { name: "Regions", def: "Geographic areas containing multiple Availability Zones.", mastered: true },
+                        { name: "Availability Zones (AZs)", def: "Isolated data centers with redundant power, networking, and connectivity.", mastered: true },
+                        { name: "Edge Locations", def: "Endpoints for caching content closer to users using CloudFront.", mastered: false },
+                        { name: "Public Cloud", def: "Shared infrastructure owned and operated by AWS.", mastered: true },
+                        { name: "Hybrid Cloud", def: "Connecting on-premises infrastructure with AWS cloud resources.", mastered: false }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "Domain 2: Security and Compliance",
+                    weight: "30%",
+                    badgeBg: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+                    description: "Understand AWS security and compliance concepts, the Shared Responsibility Model, and core IAM features.",
+                    topics: [
+                        "AWS Shared Responsibility Model",
+                        "AWS IAM (Identity and Access Management)",
+                        "Security Services (WAF, Shield, GuardDuty, Inspector)",
+                        "Compliance Governance & AWS Artifact"
+                    ],
+                    keywords: [
+                        { name: "Shared Responsibility Model", def: "Security OF the cloud (AWS) vs Security IN the cloud (Customer).", mastered: true },
+                        { name: "IAM Users", def: "Individual entities with permanent security credentials.", mastered: true },
+                        { name: "IAM Groups", def: "Collections of users sharing specific permission policies.", mastered: false },
+                        { name: "IAM Roles", def: "Temporary credentials assumed by users, apps, or services.", mastered: true },
+                        { name: "Principle of Least Privilege", def: "Granting only the minimum permissions needed to complete a task.", mastered: true },
+                        { name: "AWS GuardDuty", def: "Managed threat detection service using machine learning.", mastered: false },
+                        { name: "AWS Shield", def: "Managed Distributed Denial of Service (DDoS) protection service.", mastered: false },
+                        { name: "AWS WAF", def: "Web Application Firewall protecting web apps from common exploits.", mastered: true },
+                        { name: "AWS KMS", def: "Key Management Service for creating and managing cryptographic keys.", mastered: false },
+                        { name: "AWS Artifact", def: "On-demand access to AWS compliance reports and security audits.", mastered: false }
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Domain 3: Technology and Core Services",
+                    weight: "34%",
+                    badgeBg: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+                    description: "Understand core AWS compute, storage, database, and networking services, along with deployment options.",
+                    topics: [
+                        "Compute Services (EC2, Lambda, ECS, Elastic Beanstalk)",
+                        "Storage Services (S3, EBS, EFS, Glacier)",
+                        "Database Services (RDS, DynamoDB, Redshift)",
+                        "Networking (VPC, Subnets, Route 53, Direct Connect)"
+                    ],
+                    keywords: [
+                        { name: "Amazon EC2", def: "Elastic Compute Cloud - resizable virtual servers in the cloud.", mastered: true },
+                        { name: "AWS Lambda", def: "Serverless compute service running code in response to triggers.", mastered: true },
+                        { name: "Amazon S3", def: "Simple Storage Service - highly durable object storage.", mastered: true },
+                        { name: "Amazon EBS", def: "Elastic Block Store - block storage volumes for EC2 instances.", mastered: false },
+                        { name: "Amazon RDS", def: "Relational Database Service supporting MySQL, PostgreSQL, Aurora.", mastered: true },
+                        { name: "Amazon DynamoDB", def: "Fast, flexible fully managed NoSQL key-value database.", mastered: false },
+                        { name: "Amazon VPC", def: "Virtual Private Cloud - isolated private network in AWS.", mastered: true },
+                        { name: "Route 53", def: "Highly available and scalable Cloud Domain Name System (DNS) web service.", mastered: false },
+                        { name: "Elastic Load Balancing", def: "Automatically distributes incoming application traffic across targets.", mastered: true },
+                        { name: "Auto Scaling", def: "Dynamically adjusts capacity to maintain steady application performance.", mastered: true }
+                    ]
+                },
+                {
+                    id: 4,
+                    title: "Domain 4: Billing, Pricing, and Support",
+                    weight: "12%",
+                    badgeBg: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+                    description: "Understand AWS pricing models, billing tools, account management structures, and support plans.",
+                    topics: [
+                        "AWS Pricing Models (On-Demand, Reserved, Spot Instances)",
+                        "Billing and Cost Management Tools (Cost Explorer, Budgets)",
+                        "AWS Support Plans (Basic, Developer, Business, Enterprise)",
+                        "Account Management & AWS Trusted Advisor"
+                    ],
+                    keywords: [
+                        { name: "On-Demand Instances", def: "Pay-by-the-hour or second with no upfront commitments.", mastered: true },
+                        { name: "Reserved Instances", def: "1 or 3-year term commitments offering up to 72% discount.", mastered: true },
+                        { name: "Spot Instances", def: "Unused EC2 capacity offered at steep discounts for fault-tolerant workloads.", mastered: false },
+                        { name: "AWS Cost Explorer", def: "Tool to visualize, understand, and manage AWS costs and usage over time.", mastered: true },
+                        { name: "AWS Budgets", def: "Set custom cost and usage budgets with email or SNS alerts.", mastered: false },
+                        { name: "AWS Pricing Calculator", def: "Estimate cost for architectural solutions before building them.", mastered: true },
+                        { name: "Basic Support", def: "Free 24/7 access to customer service, documentation, and Trusted Advisor.", mastered: true },
+                        { name: "Enterprise Support", def: "Highest tier with dedicated Technical Account Manager (TAM) and 15-minute response SLA.", mastered: false },
+                        { name: "AWS Trusted Advisor", def: "Inspects AWS environment and makes recommendations for cost, security, and performance.", mastered: true },
+                        { name: "AWS Organizations", def: "Account management service to consolidate billing and apply policies across multiple AWS accounts.", mastered: false }
+                    ]
+                }
+            ]
+        };
+
+        class AWSExamApp {
+            constructor() {
+                this.activeTab = 'explorer';
+                this.selectedDomainId = 1;
+                this.chartInstance = null;
+                this.flashcardIndex = 0;
+                this.flashcardFlipped = false;
+                this.init();
+            }
+
+            init() {
+                this.setupThemeToggle();
+                this.renderStats();
+                this.renderDomainList();
+                this.selectDomain(1);
+                this.renderKeywordsTable();
+                this.initChart();
+                lucide.createIcons();
+            }
+
+            setupThemeToggle() {
+                const toggleBtn = document.getElementById('theme-toggle');
+                const html = document.documentElement;
+                
+                // Check local storage or system preference
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+
+                toggleBtn.addEventListener('click', () => {
+                    if (html.classList.contains('dark')) {
+                        html.classList.remove('dark');
+                        localStorage.theme = 'light';
+                    } else {
+                        html.classList.add('dark');
+                        localStorage.theme = 'dark';
+                    }
+                });
+            }
+
+            renderStats() {
+                let totalKeywords = 0;
+                let masteredCount = 0;
+
+                awsExamData.domains.forEach(d => {
+                    totalKeywords += d.keywords.length;
+                    masteredCount += d.keywords.filter(k => k.mastered).length;
+                });
+
+                document.getElementById('stat-total-keywords').textContent = totalKeywords;
+                document.getElementById('stat-mastered').textContent = `${masteredCount} / ${totalKeywords}`;
+                const pct = Math.round((masteredCount / totalKeywords) * 100);
+                document.getElementById('stat-mastery-pct').textContent = `${pct}% Mastered`;
+            }
+
+            switchTab(tabId) {
+                this.activeTab = tabId;
+                ['explorer', 'builder', 'keywords'].forEach(t => {
+                    const content = document.getElementById(`tab-content-${t}`);
+                    const btn = document.getElementById(`tab-btn-${t}`);
+                    if (t === tabId) {
+                        content.classList.remove('hidden');
+                        btn.className = "pb-3 border-b-2 font-semibold text-sm flex items-center space-x-2 border-aws-orange text-aws-orange transition";
+                        if (t === 'builder' && this.chartInstance) {
+                            this.chartInstance.resize();
+                        }
+                    } else {
+                        content.classList.add('hidden');
+                        btn.className = "pb-3 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-2 transition";
+                    }
+                });
+                lucide.createIcons();
+            }
+
+            renderDomainList() {
+                const listContainer = document.getElementById('domain-list');
+                listContainer.innerHTML = '';
+
+                awsExamData.domains.forEach(domain => {
+                    const isSelected = domain.id === this.selectedDomainId;
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+                        isSelected 
+                            ? 'bg-aws-orange/10 border-aws-orange text-aws-dark dark:text-white font-semibold shadow-sm' 
+                            : 'glass-card border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`;
+                    card.onclick = () => this.selectDomain(domain.id);
+
+                    card.innerHTML = `
+                        <div class="space-y-1">
+                            <span class="text-xs px-2 py-0.5 rounded font-bold ${domain.badgeBg}">Domain ${domain.id}</span>
+                            <h4 class="text-sm font-bold mt-1">${domain.title.split(': ')[1]}</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">${domain.keywords.length} Key Concepts</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-lg font-black text-aws-orange">${domain.weight}</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            }
+
+            selectDomain(domainId) {
+                this.selectedDomainId = domainId;
+                this.renderDomainList();
+
+                const domain = awsExamData.domains.find(d => d.id === domainId);
+                if (!domain) return;
+
+                document.getElementById('detail-domain-badge').className = `px-2.5 py-1 rounded-md text-xs font-semibold ${domain.badgeBg}`;
+                document.getElementById('detail-domain-badge').textContent = `Domain ${domain.id}`;
+                document.getElementById('detail-domain-title').textContent = domain.title;
+                document.getElementById('detail-domain-desc').textContent = domain.description;
+                document.getElementById('detail-domain-weight').textContent = domain.weight;
+
+                // Render topics
+                const topicsContainer = document.getElementById('detail-topics-list');
+                topicsContainer.innerHTML = '';
+                domain.topics.forEach(topic => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium flex items-center space-x-2";
+                    div.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>${topic}</span>`;
+                    topicsContainer.appendChild(div);
+                });
+
+                // Render keywords
+                const kwContainer = document.getElementById('detail-keywords-grid');
+                kwContainer.innerHTML = '';
+                domain.keywords.forEach(kw => {
+                    const span = document.createElement('div');
+                    span.className = `px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 border ${
+                        kw.mastered 
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
+                            : 'bg-slate-200/50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`;
+                    span.innerHTML = `<span>${kw.name}</span>`;
+                    kwContainer.appendChild(span);
+                });
+
+                lucide.createIcons();
+            }
+
+            renderKeywordsTable() {
+                const tbody = document.getElementById('keywords-table-body');
+                tbody.innerHTML = '';
+
+                const searchVal = document.getElementById('keyword-search-input').value.toLowerCase();
+                const domainFilter = document.getElementById('domain-filter-select').value;
+                const masteryFilter = document.getElementById('mastery-filter-select').value;
+
+                let count = 0;
+                awsExamData.domains.forEach(domain => {
+                    if (domainFilter !== 'all' && domain.id.toString() !== domainFilter) return;
+
+                    domain.keywords.forEach(kw => {
+                        if (masteryFilter === 'mastered' && !kw.mastered) return;
+                        if (masteryFilter === 'unmastered' && kw.mastered) return;
+
+                        if (searchVal && !kw.name.toLowerCase().includes(searchVal) && !kw.def.toLowerCase().includes(searchVal)) return;
+
+                        count++;
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-900/60 transition";
+                        tr.innerHTML = `
+                            <td class="p-4 font-bold text-slate-900 dark:text-white">${kw.name}</td>
+                            <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${domain.badgeBg}">Domain ${domain.id}</span></td>
+                            <td class="p-4 text-slate-600 dark:text-slate-300">${kw.def}</td>
+                            <td class="p-4 text-center">
+                                <button onclick="app.toggleMastery(${domain.id}, '${kw.name.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-full text-xs font-semibold transition ${
+                                    kw.mastered 
+                                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30' 
+                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                                }">
+                                    ${kw.mastered ? 'Mastered' : 'Reviewing'}
+                                </button>
+                            </td>
+                            <td class="p-4 text-right">
+                                <button onclick="app.quickFlashcard('${domain.id}', '${kw.name.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-aws-orange hover:text-aws-darker transition text-slate-500" title="Study Card">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+
+                if (count === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td colspan="5" class="p-8 text-center text-slate-400">No matching keywords found. Try clearing your filters.</td>`;
+                    tbody.appendChild(tr);
+                }
+
+                lucide.createIcons();
+            }
+
+            filterKeywords() {
+                this.renderKeywordsTable();
+            }
+
+            toggleMastery(domainId, keywordName) {
+                const domain = awsExamData.domains.find(d => d.id === domainId);
+                if (domain) {
+                    const kw = domain.keywords.find(k => k.name === keywordName);
+                    if (kw) {
+                        kw.mastered = !kw.mastered;
+                        this.renderStats();
+                        this.renderKeywordsTable();
+                        this.renderDomainList();
+                    }
+                }
+            }
+
+            initChart() {
+                const ctx = document.getElementById('examChart').getContext('2d');
+                const type = document.getElementById('chart-type-select').value;
+                const metric = document.getElementById('chart-metric-select').value;
+
+                let labels = awsExamData.domains.map(d => `Domain ${d.id}`);
+                let data = [];
+                let labelText = '';
+
+                if (metric === 'weight') {
+                    data = [24, 30, 34, 12];
+                    labelText = 'Official Exam Weight (%)';
+                } else if (metric === 'keywords') {
+                    data = awsExamData.domains.map(d => d.keywords.length);
+                    labelText = 'Keyword Count';
+                } else if (metric === 'mastery') {
+                    data = awsExamData.domains.map(d => {
+                        const mastered = d.keywords.filter(k => k.mastered).length;
+                        return Math.round((mastered / d.keywords.length) * 100);
+                    });
+                    labelText = 'Mastery Percentage (%)';
+                }
+
+                const colors = ['#0073BB', '#8A2BE2', '#FF9900', '#10B981'];
+
+                this.chartInstance = new Chart(ctx, {
+                    type: type,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: labelText,
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#475569',
+                                    font: { family: 'Inter', weight: 600 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateChartConfig() {
+                if (this.chartInstance) {
+                    this.chartInstance.destroy();
+                }
+                this.initChart();
+            }
+
+            randomizeChartAnimation() {
+                if (this.chartInstance) {
+                    this.chartInstance.update({
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    });
+                }
+            }
+
+            openFlashcards() {
+                this.flashcardIndex = 0;
+                this.flashcardFlipped = false;
+                this.renderFlashcard();
+                document.getElementById('flashcard-modal').classList.remove('hidden');
+                document.getElementById('flashcard-modal').classList.add('flex');
+            }
+
+            closeFlashcards() {
+                document.getElementById('flashcard-modal').classList.remove('flex');
+                document.getElementById('flashcard-modal').classList.add('hidden');
+            }
+
+            getAllFlatKeywords() {
+                let flat = [];
+                awsExamData.domains.forEach(d => {
+                    d.keywords.forEach(k => {
+                        flat.push({ ...k, domainId: d.id, domainTitle: d.title });
+                    });
+                });
+                return flat;
+            }
+
+            renderFlashcard() {
+                const allKws = this.getAllFlatKeywords();
+                const current = allKws[this.flashcardIndex];
+
+                document.getElementById('flashcard-counter').textContent = `Card ${this.flashcardIndex + 1} of ${allKws.length}`;
+                document.getElementById('flashcard-domain-badge').textContent = `Domain ${current.domainId}`;
+                
+                const titleEl = document.getElementById('flashcard-title');
+                const descEl = document.getElementById('flashcard-desc');
+
+                if (!this.flashcardFlipped) {
+                    titleEl.textContent = current.name;
+                    descEl.textContent = current.def;
+                    descEl.classList.add('hidden');
+                } else {
+                    titleEl.textContent = current.name;
+                    descEl.textContent = current.def;
+                    descEl.classList.remove('hidden');
+                }
+            }
+
+            flipFlashcard() {
+                this.flashcardFlipped = !this.flashcardFlipped;
+                this.renderFlashcard();
+            }
+
+            nextFlashcard() {
+                const allKws = this.getAllFlatKeywords();
+                this.flashcardIndex = (this.flashcardIndex + 1) % allKws.length;
+                this.flashcardFlipped = false;
+                this.renderFlashcard();
+            }
+
+            prevFlashcard() {
+                const allKws = this.getAllFlatKeywords();
+                this.flashcardIndex = (this.flashcardIndex - 1 + allKws.length) % allKws.length;
+                this.flashcardFlipped = false;
+                this.renderFlashcard();
+            }
+
+            quickFlashcard(domainId, keywordName) {
+                const allKws = this.getAllFlatKeywords();
+                const index = allKws.findIndex(k => k.domainId == domainId && k.name === keywordName);
+                if (index !== -1) {
+                    this.flashcardIndex = index;
+                    this.flashcardFlipped = false;
+                    this.openFlashcards();
+                }
+            }
+
+            exportData() {
+                let csvContent = "data:text/csv;charset=utf-8,Domain ID,Keyword,Definition,Mastered\n";
+                awsExamData.domains.forEach(d => {
+                    d.keywords.forEach(k => {
+                        csvContent += `"${d.id}","${k.name}","${k.def.replace(/"/g, '""')}","${k.mastered}"\n`;
+                    });
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "aws_clf_c02_keywords_matrix.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Initialize App on window load
+        let app;
+        window.onload = () => {
+            app = new AWSExamApp();
+        };
+    </script>
+</body>
+</html>
